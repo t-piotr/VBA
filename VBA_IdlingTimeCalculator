@@ -1,0 +1,176 @@
+Option Explicit
+    
+    Public wsTemp As Worksheet, wsPodsumowanie As Worksheet, wsData As Worksheet
+    Public driver(0 To 200) As String, month As String, adminSkip(0 To 50) As String
+    'Jazda
+    Public driveTime(0 To 200) As String, driveDistance(0 To 200) As Long, driveTimeH(0 To 200) As Integer, drivetimeM(0 To 200) As Integer
+    Public durationTime(0 To 200) As String, durationTimeH(0 To 200) As Integer, durationTimeM(0 To 200) As Integer
+    'Postój
+    Public idlingLiters(0 To 200) As Double, idlingTime(0 To 200) As String, idlingFuelAverage(0 To 200) As Double
+    Public idlingTimeH(0 To 200) As Integer, idlingTimeM(0 To 200) As Integer
+    'Łącznie
+    Public totalLiters(0 To 200) As Double, totalAverage(0 To 200) As Double
+    Public counter As Integer, i As Integer, x As Integer, a As Integer, b As Integer
+
+Sub startProgram()
+opnOfficial
+collectOfficial
+
+End Sub
+
+    
+Sub opnOfficial()
+
+    Dim dlgOpen As FileDialog
+    Dim plik As String
+      
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+
+        Set dlgOpen = Application.FileDialog(FileDialogType:=msoFileDialogOpen)
+            With dlgOpen
+                .AllowMultiSelect = True
+                .show
+            End With
+
+
+    Workbooks.Open Filename:=dlgOpen.SelectedItems(1)
+    plik = ActiveWorkbook.Name
+              Range("A:S").copy
+              ThisWorkbook.Activate
+              Sheets.Add.Name = "temp"
+               Sheets("temp").Activate
+                Range("A1").Select
+            Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+         :=False, Transpose:=False
+               Workbooks(plik).Close (False)
+
+End Sub
+
+Sub collectOfficial()
+
+    Set wsTemp = ThisWorkbook.Worksheets("temp")
+    Set wsData = ThisWorkbook.Worksheets("Data")
+    Set wsPodsumowanie = ThisWorkbook.Worksheets("Podsumowanie")
+    
+    x = 0
+    
+    wsTemp.Activate
+
+    adminSkip(1) = "Kurdys Marek"
+    
+    For i = 0 To 15000
+        
+        If Range("B1").Offset(0 + i, 0).Value = "Data rozpoczęcia" And IsDate(Range("B1").Offset(0 + i, 2).Value) Then
+            month = Format(Range("B1").Offset(0 + i, 2).Value, "mmmm")
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Serwisowa Piomar Karta" Or Range("B1").Offset(0 + i, 0).Value = "Igor Laskowski" Or _
+        Range("B1").Offset(0 + i, 0).Value = adminSkip(1) Then
+            i = i + 60
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Czas pracy silnika" Then
+            driver(x) = Range("B1").Offset(-9 + i, 0).Value
+            durationTimeH(x) = Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3)
+            durationTimeM(x) = Right(Range("B1").Offset(0 + i, 5).Value, 2) / 0.6
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Czas prowadzenia pojazdu" Then
+            driveTimeH(x) = Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3)
+            drivetimeM(x) = Right(Range("B1").Offset(0 + i, 5).Value, 2) / 0.6
+            driveDistance(x) = Left(Range("B1").Offset(0 + i, 10).Value, Len(Range("B1").Offset(0 + i, 10).Value) - 2)
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Czas postoju" Then
+            If Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3) < 0 Or _
+            Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3) = -0 Then
+                idlingTimeH(x) = Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3) * -1
+                idlingTimeM(x) = Right(Range("B1").Offset(0 + i, 5).Value, 2) / 0.6
+            Else: idlingTimeH(x) = Left(Range("B1").Offset(0 + i, 5).Value, Len(Range("B1").Offset(0 + i, 5).Value) - 3)
+                  idlingTimeM(x) = Right(Range("B1").Offset(0 + i, 5).Value, 2) / 0.6
+            End If
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Spalanie" Then
+            totalLiters(x) = Left(Range("B1").Offset(0 + i, 7).Value, Len(Range("B1").Offset(0 + i, 7).Value) - 1)
+            totalAverage(x) = Left(Range("B1").Offset(0 + i, 12).Value, Len(Range("B1").Offset(0 + i, 12).Value) - 7)
+        ElseIf Range("B1").Offset(0 + i, 0).Value = "Zużycie paliwa na postoju" Then
+            idlingLiters(x) = Left(Range("B1").Offset(0 + i, 7).Value, Len(Range("B1").Offset(0 + i, 7).Value) - 1)
+            idlingFuelAverage(x) = Left(Range("B1").Offset(0 + i, 12).Value, Len(Range("B1").Offset(0 + i, 12).Value) - 3)
+            x = x + 1
+        End If
+        
+    Next i
+    
+    wsData.Activate
+
+    Range("A1").End(xlDown).Offset(1, 0).Select
+    
+    For a = 0 To x - 1
+        ActiveCell.Offset(0 + a, 0).Value = driver(a)
+        ActiveCell.Offset(0 + a, 1).Value = month
+        ActiveCell.Offset(0 + a, 2).Value = durationTimeH(a) & "," & Format(durationTimeM(a), "00")
+        ActiveCell.Offset(0 + a, 3).Value = driveDistance(a)
+        ActiveCell.Offset(0 + a, 4).Value = driveTimeH(a) & "," & Format(drivetimeM(a), "00")
+        ActiveCell.Offset(0 + a, 5).Value = idlingTimeH(a) & "," & Format(drivetimeM(a), "00")
+        ActiveCell.Offset(0 + a, 6).Value = totalLiters(a)
+        ActiveCell.Offset(0 + a, 7).Value = totalAverage(a)
+        ActiveCell.Offset(0 + a, 8).Value = idlingLiters(a)
+        ActiveCell.Offset(0 + a, 9).Value = idlingFuelAverage(a)
+    Next a
+    
+    Erase driver, durationTime, driveDistance, driveTime, idlingTime, totalLiters, totalAverage, idlingLiters, idlingFuelAverage
+    
+    wsTemp.Delete
+    wsData.Visible = xlSheetHidden
+    
+End Sub
+
+Sub ShowOfficial()
+
+Application.ScreenUpdating = False
+
+    Dim monthCounter As Integer
+    
+    Set wsData = ThisWorkbook.Worksheets("Data")
+    Set wsPodsumowanie = ThisWorkbook.Worksheets("Podsumowanie")
+    
+    wsData.Visible = xlSheetVisible
+    
+    wsPodsumowanie.Activate
+    Range("B8:L160").ClearContents
+    month = wsPodsumowanie.Range("K5").Value
+
+    wsData.Activate
+    
+    counter = wsData.Range("A2", Range("A2").End(xlDown)).Count
+    monthCounter = WorksheetFunction.CountIf(wsData.Range("B:B"), month)
+    
+    For x = 0 To counter
+        If Range("A2").Offset(0 + x, 1).Value = month Then
+            For a = 0 To counter
+                If Range("A2").Offset(0 + x, 1).Value = month Then
+                    driver(a) = Range("A2").Offset(0 + x, 0).Value
+                    totalAverage(a) = Range("A2").Offset(0 + x, 7).Value
+                    driveDistance(a) = Range("A2").Offset(0 + x, 3).Value
+                    durationTime(a) = Range("A2").Offset(0 + x, 2).Value
+                    driveTime(a) = Range("A2").Offset(0 + x, 4).Value
+                    idlingTime(a) = Range("A2").Offset(0 + x, 5).Value
+                    idlingLiters(a) = Range("A2").Offset(0 + x, 8).Value
+                    x = x + 1
+                Else: Exit For
+                End If
+            Next a
+        End If
+    Next x
+    wsPodsumowanie.Activate
+    
+    For b = 0 To a - 2
+        Range("B8").Offset(0 + b, 0).Value = driver(b)
+        Range("B8").Offset(0 + b, 1).Value = totalAverage(b)
+        Range("B8").Offset(0 + b, 2).Value = driveDistance(b)
+        Range("B8").Offset(0 + b, 3).Value = CDbl(durationTime(b))
+        Range("B8").Offset(0 + b, 4).Value = CDbl(driveTime(b))
+        Range("B8").Offset(0 + b, 5).Value = CDbl(idlingTime(b))
+        Range("B8").Offset(0 + b, 6).FormulaR1C1 = "=RC[-1]/RC[-3]"
+        Range("B8").Offset(0 + b, 7).Value = idlingLiters(b)
+        Range("B8").Offset(0 + b, 8).FormulaR1C1 = "=IF(RC[-3]-RC[-5]*R3C3 < 0,""0,00"",RC[-3]-RC[-5]*R3C3)"
+        Range("B8").Offset(0 + b, 9).FormulaR1C1 = "=RC[-1]*R3C6"
+        Range("B8").Offset(0 + b, 10).FormulaR1C1 = "=RC[-1]*R3C10"
+        
+    Next b
+
+    wsData.Visible = xlSheetHidden
+
+End Sub
